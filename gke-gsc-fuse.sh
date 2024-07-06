@@ -15,9 +15,9 @@ CLUSTER_NAME="<YOUR_CLUSTER_NAME>"
 export BUCKET="<YOUR_BUCKET_NAME>"
 ## END Set these.
 
-## Change if you need it.
-RELEASE_CHANNEL="rapid"
-RELEASE_CHANNEL_C="RAPID"
+## Change if you need to.
+RELEASE_CHANNEL="regular"
+RELEASE_CHANNEL_C="REGULAR"
 CLUSTER_VERSION=$(gcloud container get-server-config --flatten="channels" --filter="channels.channel=${RELEASE_CHANNEL_C}" --format="yaml(channels.channel,channels.defaultVersion)" | grep "default" | awk -F":" '{print $2}' | sed -e 's/ //g')
 MACHINE_TYPE="e2-medium"
 DISK_TYPE="pd-balanced"
@@ -30,7 +30,7 @@ NODE_LOCATIONS="us-central1-c"
 NUM_NODES="1"
 ADDONS="GcsFuseCsiDriver"
 WORKLOAD_POOL="${PROJECT_ID}.svc.id.goog"
-## END Change if you need it.
+## END Change if you need to.
 
 export NAMESPACE="fuse"
 KUBERNETES_SERVICE_ACCOUNT="fuse-ksa"
