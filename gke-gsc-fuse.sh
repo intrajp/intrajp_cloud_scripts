@@ -46,35 +46,35 @@ export POD_NAME="gcs-fuse-csi-example-static-pvc-pod"
 FUSE_CONTAINER="fuse-container"
 FUSE_CONTAINER_IMAGE="busybox"
 
-echo "${NODE_LOCATIONS}"
+## Function
 
 # Create a bucket 
 function create_bucket() {
-    gsutil ls gs://"${BUCKET}"
-    local rst=$(echo $?)
-    if [ $rst -eq 1 ]; then
-        gcloud storage buckets create gs://"${BUCKET}"
-        local rst2=$(echo $?)
-        if [ $rst2 -eq 1 ]; then
-            echo "I cannot create bucket ${BUCKET}."
-	    exit 1
-        fi
-    else
-        echo "${BUCKET} exists."
+  gsutil ls gs://"${BUCKET}"
+  local rst=$(echo $?)
+  if [ $rst -eq 1 ]; then
+    gcloud storage buckets create gs://"${BUCKET}"
+    local rst2=$(echo $?)
+    if [ $rst2 -eq 1 ]; then
+      echo "I cannot create bucket ${BUCKET}."
+      exit 1
     fi
+  else
+    echo "${BUCKET} exists."
+  fi
 }
-# Create a container
-function create_container() {
-echo "project_id:${PROJECT_ID}"
-echo "cluster_name:${CLUSTER_NAME}"
-echo "cluster_version:${CLUSTER_VERSION}"
-echo "release-channel:${RELEASE_CHANNEL}"
-echo "zone:${NODE_LOCATIONS}"
-echo "num-nodes:${NUM_NODES}"
-echo "addons:${ADDONS}"
-echo "workload-pool:${WORKLOAD_POOL}"
-echo "------"
-gcloud beta container clusters create "${CLUSTER_NAME}" \
+# Create a cluster
+function create_cluster() {
+  echo "project_id:${PROJECT_ID}"
+  echo "cluster_name:${CLUSTER_NAME}"
+  echo "cluster_version:${CLUSTER_VERSION}"
+  echo "release-channel:${RELEASE_CHANNEL}"
+  echo "zone:${NODE_LOCATIONS}"
+  echo "num-nodes:${NUM_NODES}"
+  echo "addons:${ADDONS}"
+  echo "workload-pool:${WORKLOAD_POOL}"
+  echo "------"
+  gcloud beta container clusters create "${CLUSTER_NAME}" \
     --cluster-version="${CLUSTER_VERSION}" \
     --release-channel="${RELEASE_CHANNEL}" \
     --addons="${ADDONS}" \
@@ -85,72 +85,72 @@ gcloud beta container clusters create "${CLUSTER_NAME}" \
 
 # Get credential of the cluster
 function get_container_credentials() {
-gcloud container clusters get-credentials "${CLUSTER_NAME}" --zone="${NODE_LOCATIONS}"
-if [ $? -eq 1 ]; then
+  gcloud container clusters get-credentials "${CLUSTER_NAME}" --zone="${NODE_LOCATIONS}"
+  if [ $? -eq 1 ]; then
     exit 1
-fi
+  fi
 }
 
 # Create a namespace
 function create_namespace() {
-kubectl create namespace "${NAMESPACE}"
+  kubectl create namespace "${NAMESPACE}"
 }
 
 # Create kubernetes service account
 function create_kubernetes_service_account() {
-kubectl get serviceaccount --namespace "${NAMESPACE}" | grep "${KUBERNETES_SERVICE_ACCOUNT}"
-local rst=$(echo $?)
-if [ $rst -eq 1 ]; then
+  kubectl get serviceaccount --namespace "${NAMESPACE}" | grep "${KUBERNETES_SERVICE_ACCOUNT}"
+  local rst=$(echo $?)
+  if [ $rst -eq 1 ]; then
     kubectl create serviceaccount "${KUBERNETES_SERVICE_ACCOUNT}" \
-        --namespace "${NAMESPACE}"
-else
+      --namespace "${NAMESPACE}"
+  else
     echo "Kubernetec service account ${KUBERNETES_SERVICE_ACCOUNT} exists."
-fi
+  fi
 }
 
 # Create IAM service account
 function create_iam_service_account() {
-gcloud iam service-accounts list | grep "${IAM_SERVICE_ACCOUNT}"
-local rst=$(echo $?)
-if [ $rst -eq 1 ]; then
+  gcloud iam service-accounts list | grep "${IAM_SERVICE_ACCOUNT}"
+  local rst=$(echo $?)
+  if [ $rst -eq 1 ]; then
     gcloud iam service-accounts create "${IAM_SERVICE_ACCOUNT}" \
-        --project="${PROJECT_ID}"
-else
+      --project="${PROJECT_ID}"
+  else
     echo "IAM service account ${IAM_SERVICE_ACCOUNT} exists."
-fi
+  fi
 }
 
 # Add a role (roles/storage.admin)
 function add_a_role_storage_admin() {
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+  gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --member "serviceAccount:${IAM_SERVICE_ACCOUNT}@"${PROJECT_ID}".iam.gserviceaccount.com" \
     --role "roles/storage.admin"
 }
 
 # Add a role (roles/logging.logWriter)
 function add_a_role_logging_logwriter() {
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+  gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --member "serviceAccount:${IAM_SERVICE_ACCOUNT}@"${PROJECT_ID}".iam.gserviceaccount.com" \
     --role "roles/logging.logWriter"
 }
 
 # Add a role (roles/monitoring.metricWriter)
 function add_a_role_monitoring_metricwriter() {
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+  gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --member "serviceAccount:${IAM_SERVICE_ACCOUNT}@"${PROJECT_ID}".iam.gserviceaccount.com" \
     --role "roles/monitoring.metricWriter"
 }
     
 # Add IAM policy binding between 2 service accounts
 function add_iam_policy_binding_between_two_service_accounts (){
-gcloud iam service-accounts add-iam-policy-binding "${IAM_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" \
+  gcloud iam service-accounts add-iam-policy-binding "${IAM_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" \
     --role roles/iam.workloadIdentityUser \
     --member "serviceAccount:${PROJECT_ID}.svc.id.goog[${NAMESPACE}/${KUBERNETES_SERVICE_ACCOUNT}]"
 }
 
 # Add annotation
 function add_annotation() {
-kubectl annotate serviceaccount "${KUBERNETES_SERVICE_ACCOUNT}" \
+  kubectl annotate serviceaccount "${KUBERNETES_SERVICE_ACCOUNT}" \
     --namespace ${NAMESPACE} \
     "iam.gke.io/gcp-service-account=${IAM_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
 }
@@ -258,35 +258,37 @@ EOF
 
 # delete the pod
 function delete_pod() {
-    local pod_name="${1}"
-    local namespace="${2}"
-    echo "I will delete ${pod_name} in ${namespace}"
-    kubectl delete pod "${pod_name}" --namespace "${namespace}"
+  local pod_name="${1}"
+  local namespace="${2}"
+  echo "I will delete ${pod_name} in ${namespace}"
+  kubectl delete pod "${pod_name}" --namespace "${namespace}"
 }
 
 # Check fuse
 function check_fuse() {
-    # Check everything worked fine.
-    # Wait 5 minutes and type these commands
-    gsutil ls gs://"${BUCKET}"
-    echo "------"
-    echo " I wll Wait 5 minutes and type these commands."
-    echo " So, please wait 5 minutes until you get prompt of the ${POD_NAME}."
-    echo "# Please check executing these commands in ${POD_NAME}."
-    echo "$ ls /"
-    echo "$ cd /data"
-    echo "$ touch test1.txt"
-    echo "$ exit"
-    echo "# After you exit from ${POD_NAME}, please also check inside of the bucket."
-    echo "$  gsutil ls gs://${BUCKET}"
-    sleep 300 
-    kubectl exec -it "${POD_NAME}" -n "${NAMESPACE}" -c "${FUSE_CONTAINER}" -- ash
+  # Check everything worked fine.
+  # Wait 5 minutes and type these commands
+  gsutil ls gs://"${BUCKET}"
+  echo "------"
+  echo " I wll Wait 5 minutes and type these commands."
+  echo " So, please wait 5 minutes until you get prompt of the ${POD_NAME}."
+  echo "# Please check executing these commands in ${POD_NAME}."
+  echo "$ ls /"
+  echo "$ cd /data"
+  echo "$ touch test1.txt"
+  echo "$ exit"
+  echo "# After you exit from ${POD_NAME}, please also check inside of the bucket."
+  echo "$  gsutil ls gs://${BUCKET}"
+  sleep 300 
+  kubectl exec -it "${POD_NAME}" -n "${NAMESPACE}" -c "${FUSE_CONTAINER}" -- ash
 }
 
 ### ENTRYPOINT
+echo "------"
+echo "${NODE_LOCATIONS}"
 create_bucket
 echo "------"
-create_container
+create_cluster
 echo "------"
 get_container_credentials
 echo "------"
