@@ -176,52 +176,39 @@ function create_iam_service_account_another() {
   fi
 }
 ###
-# Add a role (roles/storage.admin)
+# Add a role (roles/storage.admin) to one account
 function add_a_role_storage_admin() {
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --member "serviceAccount:${IAM_SERVICE_ACCOUNT}@"${PROJECT_ID}".iam.gserviceaccount.com" \
     --role "roles/storage.admin"
 }
-# Add a role (roles/storage.admin)
+# Add a role (roles/storage.admin) to another account
 function add_a_role_storage_admin_another() {
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --member "serviceAccount:${IAM_SERVICE_ACCOUNT_ANOTHER}@"${PROJECT_ID}".iam.gserviceaccount.com" \
     --role "roles/storage.admin"
 }
 ###
-# Add a role (roles/storage.admin)
-function add_a_role_storage_admin() {
-  gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member "serviceAccount:${IAM_SERVICE_ACCOUNT}@"${PROJECT_ID}".iam.gserviceaccount.com" \
-    --role "roles/storage.admin"
-}
-# Add a role (roles/storage.admin)
-function add_a_role_storage_admin_another() {
-  gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-    --member "serviceAccount:${IAM_SERVICE_ACCOUNT_ANOTHER}@"${PROJECT_ID}".iam.gserviceaccount.com" \
-    --role "roles/storage.admin"
-}
-###
-# Add a role (roles/logging.logWriter)
+# Add a role (roles/logging.logWriter) to one account
 function add_a_role_logging_logwriter() {
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --member "serviceAccount:${IAM_SERVICE_ACCOUNT}@"${PROJECT_ID}".iam.gserviceaccount.com" \
     --role "roles/logging.logWriter"
 }
-# Add a role (roles/logging.logWriter)
+# Add a role (roles/logging.logWriter) to another account
 function add_a_role_logging_logwriter_another() {
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --member "serviceAccount:${IAM_SERVICE_ACCOUNT_ANOTHER}@"${PROJECT_ID}".iam.gserviceaccount.com" \
     --role "roles/logging.logWriter"
 }
 ###
-# Add a role (roles/monitoring.metricWriter)
+# Add a role (roles/monitoring.metricWriter) to one account 
 function add_a_role_monitoring_metricwriter() {
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --member "serviceAccount:${IAM_SERVICE_ACCOUNT}@"${PROJECT_ID}".iam.gserviceaccount.com" \
     --role "roles/monitoring.metricWriter"
 }
-# Add a role (roles/monitoring.metricWriter)
+# Add a role (roles/monitoring.metricWriter) to another account
 function add_a_role_monitoring_metricwriter_another() {
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
     --member "serviceAccount:${IAM_SERVICE_ACCOUNT_ANOTHER}@"${PROJECT_ID}".iam.gserviceaccount.com" \
@@ -241,13 +228,13 @@ function add_iam_policy_binding_between_two_service_accounts_another (){
     --member "serviceAccount:${PROJECT_ID}.svc.id.goog[${NAMESPACE_ANOTHER}/${KUBERNETES_SERVICE_ACCOUNT_ANOTHER}]"
 }
 ###
-# Add annotation
+# Add annotation to one account
 function add_annotation() {
   kubectl annotate serviceaccount "${KUBERNETES_SERVICE_ACCOUNT}" \
     --namespace ${NAMESPACE} \
     "iam.gke.io/gcp-service-account=${IAM_SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com"
 }
-# Add annotation
+# Add annotation to another account
 function add_annotation_another() {
   kubectl annotate serviceaccount "${KUBERNETES_SERVICE_ACCOUNT_ANOTHER}" \
     --namespace ${NAMESPACE_ANOTHER} \
