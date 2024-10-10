@@ -1,0 +1,155 @@
+###
+-How to use old kernel on the corupted system. OS is old ubuntu. I used version 22-04.
+
+- I have tested like this.
+- I need at least 2 kernel versions.
+- Installing the latest kernel (Only for the test).
+- Check the present kernel version.
+
+$ uname -r
+(example output)
+5.15.0-1067-gcp
+
+- Now I install latest kernel.
+- Read https://askubuntu.com/questions/1388115/how-do-i-update-my-kernel-to-the-latest-one
+
+- Download the script as described in above link. 
+$ wget https://raw.githubusercontent.com/pimlie/ubuntu-mainline-kernel.sh/master/ubuntu-mainline-kernel.sh
+$ sudo install ubuntu-mainline-kernel.sh /usr/local/bin/
+
+$ cd /usr/local/bin
+$ sudo ubuntu-mainline-kernel.sh -c  
+$ sudo ubuntu-mainline-kernel.sh -i
+
+Type 'y'
+
+$ sudo reboot 
+
+- SSH into the target VM and check kernel version, which should be brand-new.
+
+$ uname -r
+(example output)
+6.11.0-061100-generic
+
+### Entrypoint ###
+
+- Start
+- You should edit target VM's /etc/default/grub.d/50-cloudimg-settings.cfg not /etc/default/grub and the parameter is GRUB_DEFAULT to set the order of the menu, and execute 'update-grub' to re-create /boot/grub/grub.cfg.
+
+- Stop the target VM
+- Detach the boot disk.
+- Atach the disk to the test VM as an additional disk.
+- SSH into the test VM.
+
+- Check the additional disk's path like /dev/sdb1 with this command. Execute lsblk command with excluding loop back device.
+
+$ lsblk -e7
+
+- Make a directory to mount an additional disk on the test VM.
+- For example, I create a certain mount point, this time named '/mnt/ubuntu-kernel'
+
+$ sudo mkdir /mnt/ubuntu-kernel
+
+- Mount an additional disk to the test VM, this time it is /dev/sdb1.
+
+$ sudo mount /dev/sdb1 /mnt/ubuntu-kernel
+
+- Create a script, just save the original files of the test VM and I edit target files of the aditional disk on the test VM with the command 'update-grub'
+
+$ vim prepare.sh
+---
+#!/bin/bash
+
+sudo mv /etc/grub.d /etc/grub.d-save
+sudo mv /boot /boot-save
+sudo mv /etc/default/grub.d /etc/default/grub.d-save
+
+sudo mv /mnt/ubuntu-kernel/etc/grub.d /etc
+sudo mv /mnt/ubuntu-kernel/boot /
+sudo mv /mnt/ubuntu-kernel/etc/default/grub.d /etc/default
+---
+
+- save a script.
+
+:wq!
+
+- Make the file executable.
+
+$ chmod u+x prepare.sh
+
+- Execute the scritp, now I am ready to edit the setting of the order of kernel which is used when startup.
+
+$ ./prepare.sh
+
+- Edit the appropriate file appropriately, please read /mnt/ubuntu-kernel/boot/grub/grub.cfg menu and know the order of the kernel you want to use, here I set 3rd one on the submenu.
+- "1>2" means that the desired kernel version on the menu is the 3rd one in the submenu.
+
+$ sudo vim /etc/default/grub.d/50-cloudimg-settings.cfg
+
+#GRUB_DEFAULT=0
+GRUB_DEFAULT="1>2"
+GRUB_HIDDEN_TIMEOUT=0.1
+GRUB_HIDDEN_TIMEOUT_QUIET=true
+GRUB_TIMEOUT=0.1
+GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0,115200"
+GRUB_RECORDFAIL_TIMEOUT=0
+GRUB_TERMINAL=console
+
+- Save a file.
+
+:wq!
+
+- Recreate /boot/grub/grub.cfg with the command 'update-grub'
+
+$ sudo update-grub
+
+- Check the setting is right.
+
+$ less /boot/grub/grub.cfg | grep "set default"
+(output)
+   set default="${next_entry}"
+   set default="1>2"
+
+- It worked. Now the 'default' is the same as the old kernel menu order.
+- Create a script, which copies back as it used to be.
+
+$ vim fix.sh
+---
+#!/bin/bash
+
+sudo mv /etc/grub.d /mnt/ubuntu-kernel/etc
+sudo mv /boot /mnt/ubuntu-kernel
+sudo mv /etc/default/grub.d /mnt/ubuntu-kernel/etc/default
+
+sudo mv /etc/grub.d-save /etc/grub.d
+sudo mv /boot-save /boot
+sudo mv /etc/default/grub.d-save /etc/default/grub.d
+---
+
+- Save a file.
+
+:wq!
+
+- Make the file executable.
+
+$ chmod u+x fix.sh
+
+- Execute the script.
+
+$ ./fix.sh
+
+- Now I have a proper files for the proper kernel version to be used on the target VM.
+- Detach the disk from the test VM and construct the boot disk on target VM using the disk we properly edited.
+- Start the target VM.
+- Check the kernel version is the desired version in the menu.
+
+$ uname -r
+(example output)
+5.15.0-1067-gcp
+
+- Now I successfully changed kernel to the old version.
+
+- End
+
+- Hint: You should edit target VM's /etc/default/grub.d/50-cloudimg-settings.cfg not /etc/default/grub and the parameter is GRUB_DEFAULT to set the order of the menu, and execute 'update-grub' to re-create /boot/grub/grub.cfg.
+
